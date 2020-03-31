@@ -4,8 +4,8 @@ import re
 
 class Place():
 
-    def __init__(self,niveau,numero,mobiliteReduite=False):
-        self.mobiliteReduite = mobiliteReduite
+    def __init__(self,niveau,numero):
+        self.mobiliteReduite = False
         self.emplacement = numero
         self.niveau = niveau
         self.disponible = True 
@@ -18,6 +18,7 @@ class Place():
     
     def set_liberer(self):
         self.plaqueImmat = ""
+        self.code = ""
         self.set_disponibilite(True)    
 
     def set_disponibilite(self,disponibilite):
@@ -31,17 +32,24 @@ class Place():
 
     def get_disponibiliteTxt(self):
         if self.disponible:
-            return "disponible"
+            if self.mobiliteReduite:
+                return "disponible HP"
+            else:
+                return "disponible"
         else:
-            return f"occupé (véhicule '{self.plaqueImmat}'/'{self.code}')"
+            if self.mobiliteReduite:
+                return f"occupé HP (véhicule '{self.plaqueImmat}'/'{self.code}')"
+            else:
+                return f"occupé (véhicule '{self.plaqueImmat}'/'{self.code}')"
 
 
 class Parking():
 
-    def __init__(self,nom="",nbNiveau=1,nbPlace=27):
+    def __init__(self,nom="",nbNiveau=1,nbPlace=27, nbHP=6):
         self.places = []
         self.nbPlace = nbPlace
         self.nbNiveau = nbNiveau
+        self.nbHP = nbHP
         self.init_places()
         self.nom = nom
         print(f"Bienvenu dans notre parking '{nom}'. Il contient {nbNiveau*nbPlace} places réparties sur {nbNiveau} niveaux")
@@ -59,7 +67,7 @@ class Parking():
         for niv in range(0,self.nbNiveau):
             placesByNiveau = []
             for num in range(0,self.nbPlace):
-                placesByNiveau.append(Place(niv,num,randint(0,1)))
+                placesByNiveau.append(Place(niv,num))
             self.places.insert(niv,placesByNiveau)
 
     def afficher_parking(self, numNiveau = None):
@@ -72,7 +80,13 @@ class Parking():
             for num in range(0, self.nbPlace):
                 print(f"L'emplacement n°{num} du niveau -{numNiveau} est {self.places[numNiveau][num].get_disponibiliteTxt()}") 
 
-parking=Parking("Boboda parking",1,2)
+    def set_HP(self):
+        for niveau in range(0, self.nbNiveau):
+            for place in sample(self.places[niveau] , self.nbHP):
+                place.mobiliteReduite = True
+
+parking=Parking("Boboda parking",3,20,5)
+parking.set_HP()
 # parking.afficher_parking(1)
 while True:
     action=int(input("Que voulez vous faire (1 - vous garez , 2 - récuperer votre véhicule) ? "))
@@ -87,6 +101,10 @@ while True:
             print(place,niveau)
             if not parking.places[niveau][place].get_disponibilite():
                 if parking.places[niveau][place].plaqueImmat == plaqueImmat:
+                    code_valid = False
+                    while not code_valid:
+                        code=str(input("Votre code de recupération (format AAAA-123-AA)? "))
+                        code_valid = re.findall("[A-Z][A-Z][A-Z][A-Z]-[0-9][0-9][0-9]-[A-Z][A-Z]", code)
                     print(f"Votre véhicule est stationné à l'emplacement N°{parking.places[niveau][place].emplacement} du niveau -{parking.places[niveau][place].niveau}")
                     parking.places[niveau][place].set_liberer()
                     place = 0
